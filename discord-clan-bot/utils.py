@@ -6,17 +6,37 @@ from typing import Any, Callable, Optional
 from config import Config
 
 def setup_logging():
-    """Setup logging configuration"""
+    """Setup cross-platform logging configuration with Unicode support"""
     import os
+    import sys
+    import platform
+    
+    # Create logs directory
     os.makedirs('./logs', exist_ok=True)
     
+    # Configure console handler with proper encoding for Windows
+    console_handler = logging.StreamHandler(sys.stdout)
+    
+    # Set UTF-8 encoding for Windows console
+    if platform.system() == 'Windows':
+        try:
+            # Try to set UTF-8 console encoding
+            import codecs
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'replace')
+            sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'replace')
+        except Exception:
+            # Fallback: use safe formatter without emojis
+            pass
+    
+    # Setup logging with file handler (always UTF-8) and console handler
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler('./logs/bot.log', encoding='utf-8'),
-            logging.StreamHandler()
-        ]
+            console_handler
+        ],
+        force=True  # Override any existing handlers
     )
     
     # Suppress discord.py debug logs
@@ -126,6 +146,28 @@ def get_item_status_emoji(days_until_expire: int) -> str:
         return "🟡"  # Warning
     else:
         return "🟢"  # Safe
+
+def safe_log_message(message: str, fallback_message: str = None) -> str:
+    """Create safe log message for cross-platform compatibility"""
+    import platform
+    
+    # On Windows, check if we can safely display Unicode
+    if platform.system() == 'Windows':
+        try:
+            # Test if message can be encoded with cp1252
+            message.encode('cp1252')
+            return message
+        except UnicodeEncodeError:
+            # Return fallback or sanitized version
+            if fallback_message:
+                return fallback_message
+            # Remove emojis and Unicode chars
+            import re
+            # Remove emoji and special Unicode characters
+            sanitized = re.sub(r'[^\x00-\x7F]+', '', message)
+            return sanitized.strip() or "Bot message (Unicode not supported)"
+    
+    return message
 
 def chunk_list(lst: list, chunk_size: int) -> list:
     """Split list into chunks of specified size"""

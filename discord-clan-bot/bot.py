@@ -7,16 +7,9 @@ from typing import Optional
 from config import Config
 from database import DatabaseManager
 from notifications import NotificationManager
+from utils import safe_log_message
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('./logs/bot.log'),
-        logging.StreamHandler()
-    ]
-)
+# Note: Logging is configured in utils.setup_logging() called from main.py
 logger = logging.getLogger(__name__)
 
 class ClanStorageBot(commands.Bot):
@@ -43,16 +36,30 @@ class ClanStorageBot(commands.Bot):
             
             # Sync slash commands
             await self.tree.sync()
-            logger.info("✅ Slash commands synced")
+            logger.info(safe_log_message(
+                "✅ Slash commands synced",
+                "Slash commands synced"
+            ))
             
         except Exception as e:
-            logger.error(f"❌ Setup failed: {e}")
+            logger.error(safe_log_message(
+                f"❌ Setup failed: {e}",
+                f"Error: Setup failed: {e}"
+            ))
             raise
     
     async def on_ready(self):
         """Called when bot is ready"""
-        logger.info(f'🤖 Bot logged in as {self.user}')
-        logger.info(f'📊 Google Sheets connection: {"✅" if self.db.is_connected() else "❌"}')
+        logger.info(safe_log_message(
+            f'🤖 Bot logged in as {self.user}',
+            f'Bot logged in as {self.user}'
+        ))
+        
+        sheets_status = "connected" if self.db.is_connected() else "disconnected"
+        logger.info(safe_log_message(
+            f'📊 Google Sheets connection: {"✅" if self.db.is_connected() else "❌"}',
+            f'Google Sheets connection: {sheets_status}'
+        ))
         
         # Send startup notification
         await self.notifications.send_startup_notification()

@@ -39,6 +39,27 @@ Bot Discord ringan untuk mengelola storage item clan game dengan notifikasi otom
 ### 3. Installation
 
 #### Manual Installation
+
+##### Windows
+```cmd
+# Clone repository
+git clone <repository-url>
+cd discord-clan-bot
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup environment
+copy .env.example .env
+# Edit .env dengan konfigurasi Anda
+
+# Jalankan bot dengan encoding support
+run_windows.bat
+# atau menggunakan PowerShell:
+# powershell -ExecutionPolicy Bypass -File run_windows.ps1
+```
+
+##### Linux/Mac
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -246,6 +267,15 @@ tail -f logs/bot.log
 
 2. **Google Sheets error**:
    - Verify service account JSON
+
+3. **Windows Unicode Error (🤖❌✅ tidak tampil)**:
+   ```
+   UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f916'
+   ```
+   **Solution**:
+   - Gunakan `run_windows.bat` atau `run_windows.ps1` 
+   - Script ini otomatis set UTF-8 encoding
+   - Jangan jalankan `python main.py` langsung di Windows
    - Check sheet sharing permissions
    - Validate sheet ID
 
