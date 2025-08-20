@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  discord-bot:
+    build: .
+    container_name: clan-storage-bot
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
+      - AUTHORIZED_USERS=${AUTHORIZED_USERS}
+      - TIMEZONE=Asia/Jakarta
+      - NOTIFICATION_DAYS_BEFORE=7
+    volumes:
+      # Mount credentials directory (read-only)
+      - ./credentials:/app/credentials:ro
+      # Mount data directory for local backup
+      - ./data:/app/data
+      # Mount logs directory
+      - ./logs:/app/logs
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  bot-network:
+    driver: bridge
+
+# Optional: Add a simple web server for health checks
+  # web-health:
+  #   image: nginx:alpine
+  #   container_name: bot-health-check
+  #   ports:
+  #     - "8080:80"
+  #   networks:
+  #     - bot-network
+  #   depends_on:
+  #     - discord-bot
