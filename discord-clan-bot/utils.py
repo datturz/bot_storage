@@ -136,6 +136,53 @@ def calculate_expire_date(created_at: datetime) -> datetime:
     from datetime import timedelta
     return created_at + timedelta(days=Config.ITEM_EXPIRY_DAYS)
 
+def parse_date_input(date_str: str) -> datetime:
+    """Parse date input from various formats and return datetime with timezone"""
+    from datetime import datetime
+    import re
+    
+    date_str = date_str.strip()
+    
+    # Supported formats
+    formats = [
+        '%Y-%m-%d',        # 2024-01-15
+        '%d/%m/%Y',        # 15/01/2024
+        '%d-%m-%Y',        # 15-01-2024
+        '%Y/%m/%d',        # 2024/01/15
+        '%d.%m.%Y',        # 15.01.2024
+        '%d %m %Y',        # 15 01 2024
+    ]
+    
+    # Try each format
+    parsed_date = None
+    for format_str in formats:
+        try:
+            parsed_date = datetime.strptime(date_str, format_str)
+            break
+        except ValueError:
+            continue
+    
+    if not parsed_date:
+        raise ValueError(f"Format tanggal tidak dikenali: '{date_str}'")
+    
+    # Set time to current time and add timezone
+    now = datetime.now(Config.TIMEZONE)
+    parsed_date = parsed_date.replace(
+        hour=now.hour, 
+        minute=now.minute, 
+        second=now.second
+    )
+    
+    # Add timezone info
+    parsed_date = Config.TIMEZONE.localize(parsed_date)
+    
+    # Validate date is not in the future (more than today)
+    today = now.date()
+    if parsed_date.date() > today:
+        raise ValueError(f"Tanggal tidak boleh di masa depan: {parsed_date.date()}")
+    
+    return parsed_date
+
 def get_item_status_emoji(days_until_expire: int) -> str:
     """Get status emoji based on days until expiration"""
     if days_until_expire <= 0:

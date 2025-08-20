@@ -95,10 +95,11 @@ def is_authorized():
 @discord.app_commands.describe(
     nama_item="Nama item yang akan ditambahkan",
     tipe="Jenis item (UNIQUE/RED/CONSUMABLE)",
-    participant="Nama karakter yang ikut boss time (pisahkan dengan koma jika lebih dari 1)"
+    participant="Nama karakter yang ikut boss time (pisahkan dengan koma jika lebih dari 1)",
+    created_date="Tanggal dibuat (opsional, format: YYYY-MM-DD atau DD/MM/YYYY)"
 )
 @is_authorized()
-async def add_item(interaction: discord.Interaction, nama_item: str, tipe: str, participant: str):
+async def add_item(interaction: discord.Interaction, nama_item: str, tipe: str, participant: str, created_date: str = None):
     """Add new item to clan storage"""
     await interaction.response.defer()
     
@@ -113,8 +114,24 @@ async def add_item(interaction: discord.Interaction, nama_item: str, tipe: str, 
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
         
+        # Parse created_date if provided
+        custom_created_at = None
+        if created_date:
+            try:
+                from utils import parse_date_input
+                custom_created_at = parse_date_input(created_date)
+                logger.info(f"Using custom created date: {custom_created_at}")
+            except ValueError as e:
+                embed = discord.Embed(
+                    title="❌ Format Tanggal Tidak Valid",
+                    description=f"Format tanggal salah: {e}\n\nContoh format yang benar:\n• `2024-01-15` (YYYY-MM-DD)\n• `15/01/2024` (DD/MM/YYYY)\n• `15-01-2024` (DD-MM-YYYY)",
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+        
         # Add item to database
-        success = bot.db.add_item(nama_item, tipe.upper(), participant)
+        success = bot.db.add_item(nama_item, tipe.upper(), participant, custom_created_at)
         
         if success:
             # Create success embed
@@ -126,7 +143,16 @@ async def add_item(interaction: discord.Interaction, nama_item: str, tipe: str, 
             embed.add_field(name="📦 Nama Item", value=nama_item, inline=True)
             embed.add_field(name="🏷️ Tipe", value=tipe.upper(), inline=True)
             embed.add_field(name="👥 Participant", value=participant, inline=False)
-            embed.add_field(name="⏰ Expire", value=f"30 hari dari sekarang", inline=True)
+            # Calculate and display expire date
+            if custom_created_at:
+                from utils import calculate_expire_date, format_datetime
+                expire_date = calculate_expire_date(custom_created_at)
+                expire_str = format_datetime(expire_date, 'date')
+                created_str = format_datetime(custom_created_at, 'date')
+                embed.add_field(name="📅 Dibuat", value=created_str, inline=True)
+                embed.add_field(name="⏰ Expire", value=expire_str, inline=True)
+            else:
+                embed.add_field(name="⏰ Expire", value=f"30 hari dari sekarang", inline=True)
             embed.set_footer(text=f"Ditambahkan oleh {interaction.user.display_name}")
             
             await interaction.followup.send(embed=embed)

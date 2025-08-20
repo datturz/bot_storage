@@ -77,17 +77,22 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ Failed to update headers: {e}")
     
-    def add_item(self, nama_item: str, item_type: str, participant: str) -> bool:
-        """Add new item to storage"""
+    def add_item(self, nama_item: str, item_type: str, participant: str, custom_created_at: datetime = None) -> bool:
+        """Add new item to storage with optional custom creation date"""
         try:
-            now = datetime.now(Config.TIMEZONE)
-            expire_date = now + timedelta(days=Config.ITEM_EXPIRY_DAYS)
+            # Use custom created date or current time
+            if custom_created_at:
+                created_at = custom_created_at
+            else:
+                created_at = datetime.now(Config.TIMEZONE)
+            
+            expire_date = created_at + timedelta(days=Config.ITEM_EXPIRY_DAYS)
             
             # Get next number
             next_no = self._get_next_number()
             
             # Format dates for sheets
-            created_str = now.strftime('%Y-%m-%d %H:%M:%S')
+            created_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
             expire_str = expire_date.strftime('%Y-%m-%d %H:%M:%S')
             
             # Try Google Sheets first
@@ -102,7 +107,7 @@ class DatabaseManager:
                     logger.error(f"❌ Failed to add to Google Sheets: {e}")
             
             # Add to local backup
-            self._add_to_backup(next_no, nama_item, item_type.upper(), participant, now, expire_date, success)
+            self._add_to_backup(next_no, nama_item, item_type.upper(), participant, created_at, expire_date, success)
             
             return True
             
