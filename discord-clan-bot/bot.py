@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 class ClanStorageBot(commands.Bot):
     def __init__(self):
+        # Configure intents - only use what we need for slash commands
         intents = discord.Intents.default()
-        intents.message_content = True
+        # Note: message_content intent is privileged and not needed for slash commands
+        # intents.message_content = True  # Disabled - requires privileged intent approval
         super().__init__(command_prefix='!', intents=intents)
         
         self.db = DatabaseManager()
